@@ -129,6 +129,7 @@ public:
     void                    setLayerStack(uint32_t stack);
     void                    setDisplaySize(const int newWidth, const int newHeight);
     void                    setProjection(int orientation, const Rect& viewport, const Rect& frame);
+    void		    setTranslate(int x, int y);
 
     int                     getOrientation() const { return mOrientation; }
     uint32_t                getOrientationTransform() const;
@@ -267,6 +268,10 @@ private:
     int mPowerMode;
     // Current active config
     int mActiveConfig;
+    
+    int translateX;
+    int translateY;
+    Transform R, TL, TP, S;
 #ifdef USE_HWC2
     // current active color mode
     android_color_mode_t mActiveColorMode;
