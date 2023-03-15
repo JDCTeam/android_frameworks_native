@@ -18,21 +18,22 @@
 #undef LOG_TAG
 #define LOG_TAG "VSyncReactor"
 //#define LOG_NDEBUG 0
-#include "VSyncReactor.h"
+
 #include <cutils/properties.h>
 #include <log/log.h>
 #include <utils/Trace.h>
+
 #include "../TracedOrdinal.h"
-#include "TimeKeeper.h"
 #include "VSyncDispatch.h"
+#include "VSyncReactor.h"
 #include "VSyncTracker.h"
 
 namespace android::scheduler {
+
 using base::StringAppendF;
 
 VsyncController::~VsyncController() = default;
 
-Clock::~Clock() = default;
 nsecs_t SystemClock::now() const {
     return systemTime(SYSTEM_TIME_MONOTONIC);
 }
@@ -47,7 +48,7 @@ VSyncReactor::VSyncReactor(std::unique_ptr<Clock> clock, VSyncTracker& tracker,
 
 VSyncReactor::~VSyncReactor() = default;
 
-bool VSyncReactor::addPresentFence(const std::shared_ptr<android::FenceTime>& fence) {
+bool VSyncReactor::addPresentFence(std::shared_ptr<FenceTime> fence) {
     if (!fence) {
         return false;
     }
@@ -80,7 +81,7 @@ bool VSyncReactor::addPresentFence(const std::shared_ptr<android::FenceTime>& fe
         if (mPendingLimit == mUnfiredFences.size()) {
             mUnfiredFences.erase(mUnfiredFences.begin());
         }
-        mUnfiredFences.push_back(fence);
+        mUnfiredFences.push_back(std::move(fence));
     } else {
         timestampAccepted &= mTracker.addVsyncTimestamp(signalTime);
     }
@@ -145,6 +146,11 @@ bool VSyncReactor::periodConfirmed(nsecs_t vsync_timestamp, std::optional<nsecs_
         return false;
     }
 
+    if (mDisplayPowerMode == hal::PowerMode::DOZE ||
+        mDisplayPowerMode == hal::PowerMode::DOZE_SUSPEND) {
+        return true;
+    }
+
     if (!mLastHwVsync && !HwcVsyncPeriod) {
         return false;
     }
@@ -203,6 +209,11 @@ bool VSyncReactor::addHwVsyncTimestamp(nsecs_t timestamp, std::optional<nsecs_t>
         setIgnorePresentFencesInternal(false);
     }
     return mMoreSamplesNeeded;
+}
+
+void VSyncReactor::setDisplayPowerMode(hal::PowerMode powerMode) {
+    std::scoped_lock lock(mMutex);
+    mDisplayPowerMode = powerMode;
 }
 
 void VSyncReactor::dump(std::string& result) const {

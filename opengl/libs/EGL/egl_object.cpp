@@ -317,7 +317,8 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
 
     // call the implementation's glGetString(GL_EXTENSIONS)
     const char* exts = (const char*)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
-    if (!exts) return;
+    if (!exts) 
+          return;
 
 #ifdef NV_ANDROID_FRAMEWORK_ENHANCEMENTS
     // In an opengl 3.0+ context, GL_EXTENSIONS is not valid for glGetString
